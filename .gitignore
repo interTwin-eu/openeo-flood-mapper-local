@@ -53,3 +53,5 @@ venv
 
 # make file markers
 .install*
+
+notebooks/openeo-localprocessing-data
