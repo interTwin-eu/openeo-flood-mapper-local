@@ -55,3 +55,4 @@ venv
 .install*
 
 notebooks/openeo-localprocessing-data
+notebooks/openEO_local
