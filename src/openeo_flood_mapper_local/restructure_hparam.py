@@ -6,7 +6,7 @@ import xarray as xr
 from eotransform_pandas.filesystem.gather import gather_files
 from eotransform_pandas.filesystem.naming.geopathfinder_conventions import yeoda_naming_convention
 
-DATA_VERSION = 'V0M2R1'
+DATA_VERSION = 'V0M2R3'
 
 
 def restructure_hparam(root: Path, out: Path, tile_long_name: str) -> None:
