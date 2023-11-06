@@ -54,5 +54,10 @@ venv
 # make file markers
 .install*
 
+# data sources
 notebooks/openeo-localprocessing-data
 notebooks/openEO_local
+
+# quarto
+/.quarto/
+public/

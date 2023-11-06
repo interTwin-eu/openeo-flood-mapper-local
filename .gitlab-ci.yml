@@ -1,34 +1,24 @@
-stages:
-  - test
-  - deploy
+image: python:3.10
 
-test:
-  image: swamydev/geo-write:latest
+variables:
+  QUARTO_VERSION: 1.3.361
+  BASENAME: openeo-flood-mapper-local
+  BRANCH_NAME: "main"
+
+before_script:
+  - python -V
+
+pages:
   script:
-    - pip install -e .[test]
-    - make test
-  after_script:
-    - mkdir approvals-artifacts
-    - mv /eodc/private/tuwgeo/software/ci/openeo-flood-mapper-local/approved/**/*received* ./approvals-artifacts || true
-  coverage: '/^TOTAL.+?(\d+\%)$/'
+    - wget "https://github.com/quarto-dev/quarto-cli/releases/download/v${QUARTO_VERSION}/quarto-${QUARTO_VERSION}-linux-amd64.deb"
+    - dpkg -i quarto-${QUARTO_VERSION}-linux-amd64.deb
+    - pip install jupyter
+    - quarto check install
+    - quarto check jupyter
+    - pip install -e ./
+    - quarto render --to revealjs
   artifacts:
-    when: on_failure
     paths:
-      - ./approvals-artifacts/*received*
-    expire_in: 1 day
-
-deploy-pypi:
-  stage: deploy
-  image: python:latest
-  needs:
-    - test
-  script:
-    - make dist
-    - TWINE_PASSWORD=${CI_JOB_TOKEN} TWINE_USERNAME=gitlab-ci-token python -m twine upload --repository-url ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi dist/*
-  rules:
-    - if: $CI_COMMIT_TAG
-      when: always
-    - if: $CI_PIPELINE_SOURCE == "push"
-      when: manual
-  tags:
-    - linux
+      - public
+  only:
+    - main
