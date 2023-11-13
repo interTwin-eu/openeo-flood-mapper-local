@@ -14,7 +14,7 @@ In this notebook we showcase openEO's standardization of remote sensing and Eart
 
 ## Setting-up a Python session
 
-We begin by loading openEO and some additional packages. In this exercise we make use of a local variant of openEO as the data is not yet avalaible on an accesible data store.
+We begin by loading openEO and some additional packages. In this exercise we make use of a local variant of openEO as the data is not yet available on an accessible data store.
 
 ```{python}
 from datetime import datetime
@@ -71,7 +71,7 @@ sig0_dc = local_connection.load_collection(str(sig0_id))
 
 OpenEO supplies a set of conventional and EO-specific functions (or "processes" in openEO terminology) to work with EO data. In this example, we begin by defining functions that represent the flood mapping algorithm as defined in @bauer-marschallinger_satellite-based_2022, and by using standard openEO functions. The flood mapping algorithm extracts the following information: 1) the expected backscattering from water bodies, and 2) the expected backscatter intensity over land pixels given historical data. Hence, this function makes use of observations along both the spatial and temporal dimensions of the datacube.
 
-We first define the function that extracts average backscatter intensity over water bodies and we name it `water_backscatter()`. This functions applies so-called openEO "band math", which are basically mathematical computations on the bands of the datacube. In this case, the band of the incidence angle (degrees) of the retrieved backscatter signal is multiplied by a factor consisting of the slope plus an intercept from a linear model. This linear model describes the relationship between incidence angle and backscattering over water globally. Applying this linear model results in expected water back scattering. In a follow-up, we use a so-called reducer function, taking the mean of the band over the time dimension, after which, we rename this dimension as "wbsc" of type band.
+We first define the function that extracts average backscatter intensity over water bodies and we name it `water_backscatter()`. This functions applies so-called openEO "band math", which are basically mathematical computations on the bands of the datacube. In this case, the band of the incidence angle (degrees) of the retrieved backscatter signal is multiplied by a factor consisting of the slope plus an intercept from a linear model. This linear model describes the relationship between incidence angle and backscattering over water globally. Applying this linear model results in expected water back scattering. In a follow-up, we use a so-called reducer function, taking the mean of the band over the time dimension, after which, we rename this dimension "wbsc" of type band.
 
 ```{python}
 def water_backscatter(plia_dc):
@@ -86,20 +86,19 @@ water_bsc_dc = water_backscatter(plia_dc)
 water_bsc_dc
 ```
 
-Here we can see the basic premise of openEO. The previous call did not actually perform the data processing it only generates a JSON representation of the processing graph. Only by calling `execute()` on this object, we can actually perform the processing on the desired backend, like so:
+Here we can see the basic premise of openEO. The previous call did not actually perform the data processing it only generates a JSON representation of the processing graph. Only by calling `execute()` on this object, we can actually perform the processing on the desired back-end, like so:
 
 ```{python}
 water_bsc_dc.execute()
 ```
 
-We define a second function to obtain expected backscattering over land pixels. In this case we will have to use historical Sentinel-1 data for each pixel to negate the effect of seasons on the sigma nought signal. Hence a so-called harmonic model is fitted. The following function `harmonic_expected_backscatter()` implements an harmonic model optimised to filter out seasonal signals. 
+We define a second function to obtain expected backscattering over land pixels. In this case we will have to use historical Sentinel-1 data for each pixel to negate the effect of seasons on the sigma nought signal. Hence a so-called harmonic model is fitted. The following function `harmonic_expected_backscatter()` uses this harmonic model for estimations optimised to filter out seasonal signals. 
 
 ```{python}
 def harmonic_expected_backscatter(data, dtime_str):
-    # TODO: solve the context passing
     w = np.pi * 2 / 365
     dt = datetime.strptime(dtime_str, "%Y-%m-%d")
-    t = dt.timetuple().tm_yday  # TODO: solving day-of-year calculation
+    t = dt.timetuple().tm_yday
     wt = w * t
 
     M0 = data.band('M0')
@@ -109,9 +108,6 @@ def harmonic_expected_backscatter(data, dtime_str):
     C1 = data.band('C1')
     C2 = data.band('C2')
     C3 = data.band('C3')
-    
-    # NOBS = data.band('NOBS')
-    # mask = NOBS >= 32
     
     hm_c1 = (M0 + S1 * np.sin(wt)) + (C1 * np.cos(wt))
     hm_c2 = ((hm_c1 + S2 * np.sin(2 * wt)) + C2 * np.cos(2 * wt))
@@ -129,7 +125,7 @@ So far we have covered a couple of the core features of the openEO Python Client
 
 ## Processes with child “callbacks”
 
-Now we will define the last function, which calculates the probability of flooding with a Bayesian classification model. The output of this function tells if a pixel is flooded based on the previous defined expected land and water backscattering. The implementation of this function is, however, different from the previous functions, as it is applied to subsets of datacubes through the openEO function `reduce_bands()` and it thereby changes the shape of the input values. This family of functions, which also includes, e.g., `apply`, `reducedimension`, and `aggregate_spatial`, are known as the "parent" functions. These parent functions invoke a subprocess on the datacube, so-called child "callbacks".
+Now we will define the last function, which calculates the probability of flooding with a Bayesian classification model. The output of this function tells if a pixel is flooded based on the previous defined expected land and water backscattering. The implementation of this function is, however, different from the previous functions, as it is applied to subsets of datacubes through the openEO function `reduce_bands()` and it thereby changes the shape of the input values. This family of functions, which also includes, e.g., `apply()`, `reduce_dimension()`, and `aggregate_spatial()`, are known as the "parent" functions. These parent functions invoke a subprocess on the datacube, so-called child "callbacks".
 
 The following function will be used as a child callback to calculate flooding probabilities. Note that the function requires the openEO helper object `ProcessBuilder`. 
 
@@ -206,4 +202,4 @@ tk = fig.gca()
 tk = tk.set_title("Flood map")
 ```
 
-By comparing this figure with the original study [@bauer-marschallinger_satellite-based_2022], we see that the openEO workflow can perform the same operations. There are, however, some differences with the original flood mapping study. These differences relate to the absence of the postprocessing steps of the flood probabilities in the openEO workflow. Postprocessing removes e.g. the small patches of supposed flooded pixels scattered throughout the image, also known as "speckles". These speckles produce a more noisy picture in the openEO example.
+By comparing this figure with the original study [@bauer-marschallinger_satellite-based_2022], we see that the openEO workflow can perform the same operations. There are, however, some differences with the original flood mapping study. These differences relate to the absence of the low sensitivity masking and post-processing steps of the flood probabilities in the openEO workflow. A priori low sensitivity masking removes observations in which situations arise that cause insensitivity to flood conditions for physical, geometric, or sensor-side reasons. Whereas, post-processing removes e.g. the small patches of supposed flooded pixels scattered throughout the image also known as "speckles". These speckles produce a more noisy picture in the openEO example.

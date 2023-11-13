@@ -7,4 +7,4 @@ interdisiplinary Digital Twin Engine (DTE) it is built based on the **openEO** s
 
 The current workflow uses openEO locally and provides [Python scripts](src/openeo_flood_mapper_local/) to prepare the 
 input data for this purpose. Additionally, the workflow is represented and described in the dedicated 
-[notebooks](notebooks/1_yeoda_dc.qmd).
+[notebooks](notebooks/1_yeoda_dc.qmd) and the accompanying website: https://intertwin-eu.github.io/openeo-flood-mapper-local/.

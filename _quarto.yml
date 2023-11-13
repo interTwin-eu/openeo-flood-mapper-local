@@ -1,5 +1,0 @@
-project:
-  title: ssd_jf_20231017_multimodel
-  output-dir: public
-  render: 
-    - notebooks/1_yeoda_dc_dev.qmd

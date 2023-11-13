@@ -60,4 +60,4 @@ notebooks/openEO_local
 
 # quarto
 /.quarto/
-public/
+/_site/
