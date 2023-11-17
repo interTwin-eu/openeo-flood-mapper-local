@@ -61,3 +61,5 @@ notebooks/openEO_local
 # quarto
 /.quarto/
 /_site/
+notebooks/1_yeoda_dc_files
+notebooks/*.html

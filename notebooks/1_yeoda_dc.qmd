@@ -1,6 +1,8 @@
 ---
 title: "Flood mapping with openEO"
 subtitle: "interTwin"
+execute:
+  keep-ipynb: true
 author: 
     - "Florian Roth"
     - "Bernhard Raml"
