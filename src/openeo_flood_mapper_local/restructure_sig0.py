@@ -22,7 +22,7 @@ def restructure_sig0(root: Path, out: Path, tile_long_name: str) -> None:
 
     for _, row in sig0_df.iterrows():
         file = row['filepath']
-        da = rioxarray.open_rasterio(file, mask_and_scale=True, chunks=500).squeeze()
+        da = rioxarray.open_rasterio(file, mask_and_scale=True, chunks=500).squeeze().drop_vars("band")
         da.encoding.update({'scale_factor': 0.1, '_FillValue': -9999, 'dtype': 'int16', 'zlib': True})
         da.to_dataset(name='SIG0').to_netcdf(out_dir / f"{file.stem}.nc", mode='w')
 

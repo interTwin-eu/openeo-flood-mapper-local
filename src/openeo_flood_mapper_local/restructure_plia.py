@@ -22,7 +22,7 @@ def restructure_plia(root: Path, out: Path, tile_long_name: str) -> None:
 
     for _, row in plia_df.iterrows():
         file = row['filepath']
-        da = rioxarray.open_rasterio(file, mask_and_scale=True, chunks=500).squeeze()
+        da = rioxarray.open_rasterio(file, mask_and_scale=True, chunks=500).squeeze().drop_vars("band")
         if row['var_name'] == "PLIA-TAG-NOBS":
             da.encoding.update({'_FillValue': -9999, 'dtype': 'int16', 'zlib': True})
         else:
