@@ -1,5 +1,5 @@
 ---
-title: "Flood mapping with openEO"
+title: "Flood mapping with openEO (local)"
 subtitle: "interTwin"
 execute:
   keep-ipynb: true
@@ -28,10 +28,8 @@ import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import cartopy.io.img_tiles as cimgt
 
-from eotransform_pandas.filesystem.gather import gather_files
-from eotransform_pandas.filesystem.naming.geopathfinder_conventions import yeoda_naming_convention
 from openeo.local import LocalConnection
-from openeo.processes import ProcessBuilder, array_element, add, multiply, sin, cos, mask, exp
+from openeo.processes import ProcessBuilder, array_element, add, multiply, sin, cos, exp
 ```
 
 ## Data sources
@@ -232,8 +230,8 @@ We continue by improving our flood map by filtering out observations that we exp
 Firstly we mask areas where the incidence angle exceeds the maximum tolerable range of $27\degree$ to $48\degree$. These larger than usual incidence angles are a result of the area's topography as beams reflect from steep slopes. 
 
 ```{python}
-mask_ia = (flood_dc.band("PLIA") >= 27) * (flood_dc.band("PLIA") <= 48)
-flood_dc = flood_dc * mask_ia
+mask_ia = (flood_dc.band("PLIA") <= 27) | (flood_dc.band("PLIA") >= 48)
+flood_dc = flood_dc.mask(mask_ia)
 ```
 
 This results in the following map:
@@ -252,8 +250,8 @@ We remove values that have already low backscatter values during normal conditio
 
 ```{python}
 water_bsc_threshold = decision_in.band("wbsc") + 0.5 * 2.754041 # 
-mask_conflict = decision_in.band("hbsc") > water_bsc_threshold
-flood_dc = flood_dc * mask_conflict
+mask_conflict = decision_in.band("hbsc") < water_bsc_threshold
+flood_dc = flood_dc.mask(mask_conflict)
 ```
 
 Exclusion of these conflicting distributions look as follows:
@@ -276,9 +274,9 @@ land_bsc_lower = flood_dc.band("hbsc") - 3 * flood_dc.band("std")
 land_bsc_upper = flood_dc.band("hbsc") + 3 * flood_dc.band("std")
 water_bsc_upper = flood_dc.band("wbsc") + 3 * 2.754041
 
-mask_land_outliers = (flood_dc.band("sig0") > land_bsc_lower) * (flood_dc.band("sig0") < land_bsc_upper)
-mask_water_outliers = flood_dc.band("sig0") < water_bsc_upper
-flood_dc = flood_dc * ((mask_land_outliers + mask_water_outliers) > 0)
+mask_land_outliers = (flood_dc.band("sig0") < land_bsc_lower) | (flood_dc.band("sig0") > land_bsc_upper)
+mask_water_outliers = flood_dc.band("sig0") > water_bsc_upper
+flood_dc = flood_dc.mask(mask_land_outliers & mask_water_outliers)
 ```
 
 Adding this to the prvious masking results in the following map:
@@ -297,8 +295,8 @@ view_flood_map(flood_decision)
 In some cases the posterior distriubtion is ambiqous as it falls close to a 0.5 probability of flooding (a coin flip). This happens when the probability distributions for water and land backscattering overlap and/or the measured backscatter values falls exactly in the middle of the two distributions. Hence a cutt-off of 0.2 is used to limit the potential of falls positive classifications.
 
 ```{python}
-mask_uncertainty = flood_dc > 0.8
-flood_dc = flood_dc * mask_uncertainty
+mask_uncertainty = flood_dc.band("dec") < 0.8
+flood_dc = flood_dc.mask(mask_uncertainty)
 ```
 
 This results in the following floodmap.
