@@ -1,22 +1,22 @@
 ---
-title: "Flood mapping with openEO (local)"
+title: "Flood mapping with openEO"
 subtitle: "interTwin"
 execute:
-  keep-ipynb: true
+    keep-ipynb: true
 author: 
-    - "Florian Roth"
-    - "Bernhard Raml"
-    - "Martin Schobben"
-    - "Matthias Schramm"
+- "Florian Roth"
+- "Bernhard Raml"
+- "Martin Schobben"
+- "Matthias Schramm"
 bibliography: intertwin.bib
 format: html
 ---
 
-In this notebook we showcase openEO's standardization of remote sensing and Earth observation operations. We do this by translating the flood mapping algorithm as presented in @bauer-marschallinger_satellite-based_2022 to the openEO syntax of the Python Client. This algorithm employs Sentinel-1 backscattered microwaves, so-called "sigma nought" or $\sigma^0$, to detect flooding. In this exercise we will replicate the case study of the above mentioned paper, the February 2018 flooding of the Greek region of Thessaly.
+In this notebook we showcase openEOs standardization of remote sensing and Earth observation operations. We do this by translating the flood mapping algorithm as presented in @bauer-marschallinger_satellite-based_2022 to the openEO syntax of the Python Client. This algorithm employs Sentinel-1 backscattered microwaves, so-called "sigma nought" or $\sigma^0$, to detect flooding. In this exercise we will replicate the case study of the above mentioned paper, the February 2018 flooding of the Greek region of Thessaly.
 
 ## Setting-up a Python session
 
-We begin by loading openEO and some additional packages. In this exercise we make use of a local variant of openEO as the data is not yet available on an accessible data store.
+We begin by loading openEO and some additional packages. In this exercise we use a local variant of openEO as the necessary data is not yet available on an accessible data store.
 
 ```{python}
 from datetime import datetime
@@ -29,7 +29,16 @@ import cartopy.crs as ccrs
 import cartopy.io.img_tiles as cimgt
 
 from openeo.local import LocalConnection
-from openeo.processes import ProcessBuilder, array_element, add, multiply, sin, cos, exp
+from openeo.processes import ProcessBuilder, array_element, add, multiply, sin, cos, mask, exp, median
+```
+
+```{python}
+#| echo: false
+from dask.distributed import Client
+try:
+    client = Client("localhost:9000")
+except:
+    pass
 ```
 
 ## Data sources
@@ -65,10 +74,9 @@ plia_dc = local_connection.load_collection(str(plia_id))
 sig0_dc = local_connection.load_collection(str(sig0_id))
 ```
 
-
 ## openEO analysis
 
-OpenEO supplies a set of conventional and EO-specific functions (or "processes" in openEO terminology) to work with EO data. In this example, we begin by defining functions that represent the flood mapping algorithm as defined in @bauer-marschallinger_satellite-based_2022, and by using standard openEO functions. The flood mapping algorithm extracts the following information: 1) the expected backscattering from water bodies, and 2) the expected backscatter intensity over land pixels given historical data. Hence, this function makes use of observations along both the spatial and temporal dimensions of the datacube.
+openEO supplies a set of conventional and EO-specific functions (or "processes" in openEO terminology) to work with EO data. In this example, we begin by defining functions that represent the flood mapping algorithm as defined in @bauer-marschallinger_satellite-based_2022, and by using standard openEO functions. The flood mapping algorithm extracts the following information: 1) the expected backscattering from water bodies, and 2) the expected backscatter intensity over land pixels given historical data. Hence, this function makes use of observations along both the spatial and temporal dimensions of the datacube.
 
 We first define the function that extracts average backscatter intensity over water bodies and we name it `water_backscatter()`. This functions applies so-called openEO "band math", which are basically mathematical computations on the bands of the datacube. In this case, the band of the incidence angle (degrees) of the retrieved backscatter signal is multiplied by a factor consisting of the slope plus an intercept from a linear model. This linear model describes the relationship between incidence angle and backscattering over water globally. Applying this linear model results in expected water back scattering. In a follow-up, we use a so-called reducer function, taking the mean of the band over the time dimension, after which, we rename this dimension "wbsc" of type band.
 
@@ -107,7 +115,6 @@ def harmonic_expected_backscatter(data, dtime_str):
     C1 = data.band('C1')
     C2 = data.band('C2')
     C3 = data.band('C3')
-    
     hm_c1 = (M0 + S1 * np.sin(wt)) + (C1 * np.cos(wt))
     hm_c2 = ((hm_c1 + S2 * np.sin(2 * wt)) + C2 * np.cos(2 * wt))
     hm_c3 = ((hm_c2 + S3 * np.sin(3 * wt)) + C3 * np.cos(3 * wt))
@@ -135,15 +142,16 @@ def bayesian_flood_decision(x: ProcessBuilder) -> ProcessBuilder:
     std = x.array_element(index=1)
     wbsc = x.array_element(index=2)
     hbsc = x.array_element(index=3)
-    
+
     f_prob = (1.0 / (std * np.sqrt(2 * np.pi))) * np.exp(-0.5 * \
         (((sig0 - wbsc) / nf_std) ** 2))
     nf_prob = (1.0 / (nf_std * np.sqrt(2 * np.pi))) * np.exp(-0.5 * \
         (((sig0 - hbsc) / nf_std) ** 2))
+
     evidence = (nf_prob * 0.5) + (f_prob * 0.5)
-    f_post_prob = (f_prob * 0.5) /  evidence 
-    nf_post_prob = (nf_prob * 0.5) /  evidence 
-    
+    f_post_prob = (f_prob * 0.5) / evidence 
+    nf_post_prob = (nf_prob * 0.5) / evidence 
+
     # flood if flood class has higher probability
     return f_post_prob.gt(nf_post_prob)
 ```
@@ -166,7 +174,6 @@ decision_in = sig0_dc. \
     merge_cubes(land_bsc_dc). \
     merge_cubes(plia_dc)
 ```
-
 
 # Classification
 
@@ -196,11 +203,11 @@ def view_flood_map(df):
     axis.add_image(request, 15)
     # add the data
     flood_map = flood_map.plot(
-        ax=axis,
-        transform=ccrs.PlateCarree(),
-        levels=[0, 1, 2],
-        colors=["#00000000", "#ff0000"],
-        add_colorbar=False
+    ax=axis,
+    transform=ccrs.PlateCarree(),
+    levels=[0, 1, 2],
+    colors=["#00000000", "#ff0000"],
+    add_colorbar=False
     )
     # legend and title
     cbar = fig.colorbar(flood_map, ax=axis, location="bottom", shrink=0.6)
@@ -223,15 +230,15 @@ By comparing this figure with the original study [@bauer-marschallinger_satellit
 
 ## Masking of low sensitivity pixels
 
-We continue by improving our flood map by filtering out observations that we expect to have low sensistivity to flooding based on a predefined set of criteria.
+We continue by improving our flood map by filtering out observations that we expect to have low sensitivity to flooding based on a predefined set of criteria.
 
 ### Masking of Exceeding Incidence Angles
 
 Firstly we mask areas where the incidence angle exceeds the maximum tolerable range of $27\degree$ to $48\degree$. These larger than usual incidence angles are a result of the area's topography as beams reflect from steep slopes. 
 
 ```{python}
-mask_ia = (flood_dc.band("PLIA") <= 27) | (flood_dc.band("PLIA") >= 48)
-flood_dc = flood_dc.mask(mask_ia)
+mask_ia = (flood_dc.band("PLIA") >= 27) * (flood_dc.band("PLIA") <= 48)
+flood_dc = flood_dc * mask_ia
 ```
 
 This results in the following map:
@@ -246,12 +253,12 @@ view_flood_map(flood_decision)
 
 ### Identification of Conflicting Distributions
 
-We remove values that have already low backscatter values during normal conditions and which do not represent water. Examples of such surfaces are highways, aistro[s. salt panes, or arid sand and/or bedrock. Indetification of such conflicting distriubtion is done by comparing the expected local land distribution (from the harmonic model) with those from the water distribution, if these cannot be distinguished from ech other, the pixel is excluded.
+We remove values that have already low backscatter values during normal conditions and which do not represent water. Examples of such surfaces are highways, airstrips. salt panes, or arid sand and/or bedrock. Identification of such conflicting distribution is done by comparing the expected local land distribution (from the harmonic model) with those from the water distribution, if these cannot be distinguished from each other, the pixel is excluded.
 
 ```{python}
-water_bsc_threshold = decision_in.band("wbsc") + 0.5 * 2.754041 # 
-mask_conflict = decision_in.band("hbsc") < water_bsc_threshold
-flood_dc = flood_dc.mask(mask_conflict)
+water_bsc_threshold = decision_in.band("wbsc") + 0.5 * 2.754041
+mask_conflict = decision_in.band("hbsc") > water_bsc_threshold
+flood_dc = flood_dc * mask_conflict
 ```
 
 Exclusion of these conflicting distributions look as follows:
@@ -264,7 +271,6 @@ flood_decision = flood_dc.execute()
 view_flood_map(flood_decision)
 ```
 
-
 ### Removal of Measurement Outliers
 
 Extreme backscatter values are yet another source of insensitivity to floods. These outliers are not properly represented by the Bayesian model probabilities.
@@ -274,9 +280,9 @@ land_bsc_lower = flood_dc.band("hbsc") - 3 * flood_dc.band("std")
 land_bsc_upper = flood_dc.band("hbsc") + 3 * flood_dc.band("std")
 water_bsc_upper = flood_dc.band("wbsc") + 3 * 2.754041
 
-mask_land_outliers = (flood_dc.band("sig0") < land_bsc_lower) | (flood_dc.band("sig0") > land_bsc_upper)
-mask_water_outliers = flood_dc.band("sig0") > water_bsc_upper
-flood_dc = flood_dc.mask(mask_land_outliers & mask_water_outliers)
+mask_land_outliers = (flood_dc.band("sig0") > land_bsc_lower) * (flood_dc.band("sig0") < land_bsc_upper)
+mask_water_outliers = flood_dc.band("sig0") < water_bsc_upper
+flood_dc = flood_dc * (mask_land_outliers | mask_water_outliers)
 ```
 
 Adding this to the prvious masking results in the following map:
@@ -289,14 +295,13 @@ flood_decision = flood_dc.execute()
 view_flood_map(flood_decision)
 ```
 
-
 ### Denial of High Uncertainty on Decision
 
-In some cases the posterior distriubtion is ambiqous as it falls close to a 0.5 probability of flooding (a coin flip). This happens when the probability distributions for water and land backscattering overlap and/or the measured backscatter values falls exactly in the middle of the two distributions. Hence a cutt-off of 0.2 is used to limit the potential of falls positive classifications.
+In some cases the posterior distribution is ambiguous as it falls close to a 0.5 probability of flooding (i.e., a coin flip). This happens when the probability distributions for water and land backscattering overlap and/or the measured backscatter values falls exactly in the middle of the two distributions. Hence a cut-off of 0.2 is used to limit the potential of falls positive classifications.
 
 ```{python}
-mask_uncertainty = flood_dc.band("dec") < 0.8
-flood_dc = flood_dc.mask(mask_uncertainty)
+mask_uncertainty = flood_dc.band("dec") > 0.8
+flood_dc = flood_dc * mask_uncertainty
 ```
 
 This results in the following floodmap.
@@ -308,3 +313,29 @@ This results in the following floodmap.
 flood_decision = flood_dc.execute()
 view_flood_map(flood_decision)
 ```
+
+## Postprocessing
+
+The following steps are designed to further improve the clarity of the floodmaps. These filters do not directly relate to prior knowledge on backscattering, but consists of contextual evidence that supports, or oppose, a flood classification.
+
+### Removal of Speckles
+
+One such filtering approach targets so-called speckles. These speckles are areas of one or a few pixels, and which are likely the result of the diversity of scattering surfaces at a sub-pixel level. In this approach it is argued that small, solitary flood surfaces are unlikely. Hence speckles are removed by applying a smoothing filter which consists of a rolling window median along the x and y-axis simultaneously. 
+
+This approach is realised in openEO with the parent function `apply_neighborhood()` with a window size of 5 by 5 pixels. The child process `median` is used to average the window's values.
+
+```{python}
+flood_decision = flood_dc. \
+    apply_neighborhood("median", dict(x=5, y=5)). \
+    execute()
+```
+
+This results in a much clearer flood map, as shown below:
+
+```{python}
+#| fig-cap: "OpenEO floodmap - masking high uncertainty classifications + extreme outliers + conflicting distributions + exceeding incidence angles + majority filter"
+#| results: hide
+#| echo: False 
+view_flood_map(flood_decision)
+```
+
