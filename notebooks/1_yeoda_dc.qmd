@@ -177,7 +177,7 @@ decision_in = sig0_dc. \
 
 # Classification
 
-The preprocessed multi-band datacube can then be used as input for the Bayesian flood mapping function that reduces all these bands to just one in the resulting datacube.
+The merged preprocessed datacube can then be used as input for the Bayesian flood mapping function that reduces all these bands to just one in the resulting datacube.
 
 ```{python}
 flood_dc = decision_in.reduce_bands(bayesian_flood_decision). \
