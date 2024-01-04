@@ -63,3 +63,4 @@ notebooks/openEO_local
 /_site/
 notebooks/1_yeoda_dc_files
 notebooks/*.html
+notebooks/dask-cluster.py
