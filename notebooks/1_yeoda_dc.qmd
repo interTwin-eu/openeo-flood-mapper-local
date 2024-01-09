@@ -220,7 +220,7 @@ def view_flood_map(df):
 ```
 
 ```{python}
-#| fig-cap: "OpenEO floodmap - no pre-processing"
+#| fig-cap: "openEO floodmap - no pre-processing"
 #| results: hide
 flood_decision = flood_dc.execute()
 view_flood_map(flood_decision)
@@ -244,7 +244,7 @@ flood_dc = flood_dc * mask_ia
 This results in the following map:
 
 ```{python}
-#| fig-cap: "OpenEO floodmap - masking exceeding incidence angles"
+#| fig-cap: "openEO floodmap - masking exceeding incidence angles"
 #| results: hide
 #| echo: False
 flood_decision = flood_dc.execute()
@@ -264,7 +264,7 @@ flood_dc = flood_dc * mask_conflict
 Exclusion of these conflicting distributions look as follows:
 
 ```{python}
-#| fig-cap: "OpenEO floodmap - masking conflicting distributions + exceeding incidence angles"
+#| fig-cap: "openEO floodmap - masking conflicting distributions + exceeding incidence angles"
 #| results: hide
 #| echo: False
 flood_decision = flood_dc.execute()
@@ -288,7 +288,7 @@ flood_dc = flood_dc * (mask_land_outliers | mask_water_outliers)
 Adding this to the prvious masking results in the following map:
 
 ```{python}
-#| fig-cap: "OpenEO floodmap - masking extreme outliers + conflicting distributions + exceeding incidence angles"
+#| fig-cap: "openEO floodmap - masking extreme outliers + conflicting distributions + exceeding incidence angles"
 #| results: hide
 #| echo: False
 flood_decision = flood_dc.execute()
@@ -307,7 +307,7 @@ flood_dc = flood_dc * mask_uncertainty
 This results in the following floodmap.
 
 ```{python}
-#| fig-cap: "OpenEO floodmap - masking high uncertainty classifications + extreme outliers + conflicting distributions + exceeding incidence angles"
+#| fig-cap: "openEO floodmap - masking high uncertainty classifications + extreme outliers + conflicting distributions + exceeding incidence angles"
 #| results: hide
 #| echo: False 
 flood_decision = flood_dc.execute()
@@ -322,18 +322,18 @@ The following steps are designed to further improve the clarity of the floodmaps
 
 One such filtering approach targets so-called speckles. These speckles are areas of one or a few pixels, and which are likely the result of the diversity of scattering surfaces at a sub-pixel level. In this approach it is argued that small, solitary flood surfaces are unlikely. Hence speckles are removed by applying a smoothing filter which consists of a rolling window median along the x and y-axis simultaneously. 
 
-This approach is realised in openEO with the parent function `apply_neighborhood()` with a window size of 5 by 5 pixels. The child process `median` is used to average the window's values.
+This approach is realised in openEO with the parent function `apply_neighborhood()` with a window size of 3 by 3 pixels. The child process `median` is used to average the window's values.
 
 ```{python}
 flood_decision = flood_dc. \
-    apply_neighborhood("median", dict(x=5, y=5)). \
+    apply_neighborhood("median", dict(x=-1, y=-1), dict(x=2, y=2)). \
     execute()
 ```
 
 This results in a much clearer flood map, as shown below:
 
 ```{python}
-#| fig-cap: "OpenEO floodmap - masking high uncertainty classifications + extreme outliers + conflicting distributions + exceeding incidence angles + majority filter"
+#| fig-cap: "openEO floodmap - masking high uncertainty classifications + extreme outliers + conflicting distributions + exceeding incidence angles + majority filter"
 #| results: hide
 #| echo: False 
 view_flood_map(flood_decision)
