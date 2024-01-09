@@ -1,0 +1,61 @@
+---
+title: "Flood mapping with openEO"
+subtitle: "interTwin"
+execute:
+  keep-ipynb: true
+author: 
+    - "Florian Roth"
+    - "Bernhard Raml"
+    - "Martin Schobben"
+    - "Matthias Schramm"
+bibliography: intertwin.bib
+format: html
+---
+
+In this notebook we showcase openEO's standardization of remote sensing and Earth observation operations. We do this by translating the flood mapping algorithm as presented in @bauer-marschallinger_satellite-based_2022 to the openEO syntax of the Python Client. This algorithm employs Sentinel-1 backscattered microwaves, so-called "sigma nought" or $\sigma^0$, to detect flooding. In this exercise we will replicate the case study of the above mentioned paper, the February 2018 flooding of the Greek region of Thessaly.
+
+## Setting-up a Python session
+
+We begin by loading openEO and some additional packages. In this exercise we make use of a local variant of openEO as the data is not yet available on an accessible data store.
+
+```{python}
+from datetime import datetime
+from pathlib import Path
+import numpy as np
+
+import rioxarray
+import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
+import cartopy.io.img_tiles as cimgt
+
+import openeo
+```
+
+## Connect to the EODC openEO back-end
+
+Establish a connection to the EODC backend with `openeo.connect()`. This results in a connection object which is a critical aspect of collection discovery on the back-end by openEO. 
+
+```{python}
+backend = "https://openeo.eodc.eu"
+connection = openeo.connect(backend)
+connection.authenticate_oidc(provider_id='egi')
+```
+
+## Load collections
+
+We can then load the collections. This is done by using the method `load_collection()` and by using the collection ids as defined above.
+
+```{python}
+connection.describe_collection('SENTINEL1_GRD')
+```
+
+```{python}
+spatial_extent = {"west": 16.06, "south": 48.06, "east": 16.65, "north": 48.35}
+sensing_date = "2018-02-28"
+s2_dc = connection.load_collection(
+    "SENTINEL1_SIGMA0_20M",
+    spatial_extent = spatial_extent,
+    temporal_extent = sensing_date,
+    bands=["VV"]
+)
+```
