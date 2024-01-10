@@ -1,5 +1,5 @@
 ---
-title: "Flood mapping with openEO"
+title: "Flood Mapping with openEO"
 subtitle: "interTwin"
 execute:
     keep-ipynb: true
@@ -14,7 +14,7 @@ format: html
 
 In this notebook we showcase openEOs standardization of remote sensing and Earth observation operations. We do this by translating the flood mapping algorithm as presented in @bauer-marschallinger_satellite-based_2022 to the openEO syntax of the Python Client. This algorithm employs Sentinel-1 backscattered microwaves, so-called "sigma nought" or $\sigma^0$, to detect flooding. In this exercise we will replicate the case study of the above mentioned paper, the February 2018 flooding of the Greek region of Thessaly.
 
-## Setting-up a Python session
+## Setting-up a Python Session
 
 We begin by loading openEO and some additional packages. In this exercise we use a local variant of openEO as the necessary data is not yet available on an accessible data store.
 
@@ -41,7 +41,7 @@ except:
     pass
 ```
 
-## Data sources
+## Data Sources
 
 The paths to the local data sources define the collections to be loaded in the next steps. In the case of a local openEO instance, we do this by just supplying the paths to the files required for the analysis. 
 
@@ -52,7 +52,7 @@ plia_id = Path(f"{ROOT_DATA}openEO_local/s1_parameters/S1_CSAR_IWGRDH/PLIA-TAG/V
 sig0_id = Path(f"{ROOT_DATA}openEO_local/s1_parameters/S1_CSAR_IWGRDH/SIG0/V1M1R1/EQUI7_EU020M/E054N006T3/SIG0_20180228T043908__VV_D080_E054N006T3_EU020M_V1M1R1_S1AIWGRDH_TUWIEN.nc")
 ```
 
-## Connect to an openEO back-end
+## Connect to an openEO Back-end
 
 Establish the local connection by supplying path(s) to root directories of the data source(s). This results in a connection object which is a critical aspect of collection discovery on the back-end by openEO, where in this instance the back-end is your own machine. 
 
@@ -64,7 +64,7 @@ local_connection = LocalConnection([
 ])
 ```
 
-## Load collections
+## Load Collections
 
 We can then load the collections. This is done by using the method `load_collection()` and by using the collection ids as defined above.
 
@@ -74,7 +74,7 @@ plia_dc = local_connection.load_collection(str(plia_id))
 sig0_dc = local_connection.load_collection(str(sig0_id))
 ```
 
-## openEO analysis
+## openEO Analysis
 
 openEO supplies a set of conventional and EO-specific functions (or "processes" in openEO terminology) to work with EO data. In this example, we begin by defining functions that represent the flood mapping algorithm as defined in @bauer-marschallinger_satellite-based_2022, and by using standard openEO functions. The flood mapping algorithm extracts the following information: 1) the expected backscattering from water bodies, and 2) the expected backscatter intensity over land pixels given historical data. Hence, this function makes use of observations along both the spatial and temporal dimensions of the datacube.
 
@@ -129,7 +129,7 @@ land_bsc_dc = harmonic_expected_backscatter(hparam_dc, '2018-02-01')
 
 So far we have covered a couple of the core features of the openEO Python Client syntax. However, in all these cases, the shape of the datacube was not altered. In the following section we cover what to do when want to change shape through accumulation or reduction of input values.
 
-## Processes with child “callbacks”
+## Processes with Child “callbacks”
 
 Now we will define the last function, which calculates the probability of flooding with a Bayesian classification model. The output of this function tells if a pixel is flooded based on the previous defined expected land and water backscattering. The implementation of this function is, however, different from the previous functions, as it is applied to subsets of datacubes through the openEO function `reduce_bands()` and it thereby changes the shape of the input values. This family of functions, which also includes, e.g., `apply()`, `reduce_dimension()`, and `aggregate_spatial()`, are known as the "parent" functions. These parent functions invoke a subprocess on the datacube, so-called child "callbacks".
 
@@ -185,7 +185,7 @@ flood_dc = decision_in.reduce_bands(bayesian_flood_decision). \
 flood_dc = flood_dc.merge_cubes(decision_in)
 ```
 
-## openEO flood mapping
+## openEO Flood Mapping
 
 We can check the results of the openEO by executing the processing steps with `execute()` and by plotting the flood mapping classification.
 
@@ -228,7 +228,7 @@ view_flood_map(flood_decision)
 
 By comparing this figure with the original study [@bauer-marschallinger_satellite-based_2022], we see that the openEO workflow can perform the same operations. There are, however, some differences with the original flood mapping study. These differences relate to the absence of the low sensitivity masking and post-processing steps of the flood probabilities in the openEO workflow. A priori low sensitivity masking removes observations in which situations arise that cause insensitivity to flood conditions for physical, geometric, or sensor-side reasons. Whereas, post-processing removes e.g. the small patches of supposed flooded pixels scattered throughout the image also known as "speckles". These speckles produce a more noisy picture in the openEO example.
 
-## Masking of low sensitivity pixels
+## Masking of Low Sensitivity Pixels
 
 We continue by improving our flood map by filtering out observations that we expect to have low sensitivity to flooding based on a predefined set of criteria.
 
