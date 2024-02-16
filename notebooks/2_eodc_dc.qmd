@@ -42,55 +42,87 @@ connection = openeo.connect(backend)
 connection.authenticate_oidc()
 ```
 
-
 ## Load collections
 
 We can then load the collections. This is done by using the method `load_collection()` and by using the collection ids as defined above.
 
 ```{python}
-
 spatial_extent = {"west": 22, "south": 39.483774, "east": 22.225465, "north": 39.6}
 sensing_date = ["2018-02-28T04:00:00Z", "2018-02-28T05:00:00Z"]
+```
+
+### Microwave Backscatter
+
+```{python}
+connection.collection_metadata("SENTINEL1_SIG0_20M")
+```
+
+```{python}
+#| eval: false
 sig0_dc = connection.load_collection(
     "SENTINEL1_SIG0_20M",
     spatial_extent = spatial_extent,
     temporal_extent = sensing_date,
     bands=["VV"]
 )
-hparam_dc = connection.load_collection(
-    "SENTINEL1_HPAR",
-    spatial_extent = spatial_extent,
-    temporal_extent = "2019"
-)
-plia_dc = connection.load_collection(
-    "SENTINEL1_MPLIA",
-    spatial_extent = spatial_extent,
-    temporal_extent = ["2020-01-01", "2020-12-31"]
-)
-
 sig0_res = sig0_dc.save_result(format = "NetCDF")
 sig0_job = sig0_res.create_job(title = "sig0_greece_flood_2018_as_NetCDF_py")
-hparam_res = hparam_dc.save_result(format = "NetCDF")
-hparam_job = hparam_res.create_job(title = "hparam_greece_flood_2018_as_NetCDF_py")
-plia_res = plia_dc.save_result(format = "NetCDF")
-plia_job = plia_res.create_job(title = "plia_greece_flood_2018_as_NetCDF_py")
+sig0_job.start_job()
+sig0_job.download_results()
 ```
 
-
 ```{python}
-sig0_dc = xr.open_mfdataset("openEO_eodc/*.nc", concat_dim="time", combine='nested')
+sig0_dc = xr .open_mfdataset("openEO_eodc/s1_parameters/SIG0/*.nc", concat_dim="time", combine='nested')
 sig0_dc.where(sig0_dc != -9999). \
     mean(dim="time"). \
     to_array(). \
     plot(x="x", y="y", vmin=-230, vmax=-110)
 ```
 
+### Harmonic parameters
+
 ```{python}
-hparam_dc = xr.open_dataset("")
-hparam_dc
+connection.collection_metadata("SENTINEL1_HPAR")
 ```
 
 ```{python}
-hplia_dc = xr.open_dataset("")
+#| eval: false
+hparam_dc = connection.load_collection(
+    "SENTINEL1_HPAR",
+    spatial_extent = spatial_extent,
+    temporal_extent = "2019"
+)
+hparam_res = hparam_dc.save_result(format = "NetCDF")
+hparam_job = hparam_res.create_job(title = "hparam_greece_flood_2018_as_NetCDF_py")
+hparam_job.start_job()
+hparam_job.download_results()
+```
+
+```{python}
+hparam_dc = xr.open_mfdataset("openEO_eodc/tuw_s1_harpar/*.nc", concat_dim="time", combine='nested')
+hparam_dc
+```
+
+### Local Incidence Angle
+
+```{python}
+connection.collection_metadata("SENTINEL1_MPLIA")
+```
+
+```{python}
+#| eval: false
+plia_dc = connection.load_collection(
+    "SENTINEL1_MPLIA",
+    spatial_extent = spatial_extent,
+    temporal_extent = ["2020-01-01", "2020-12-31"]
+)
+plia_res = plia_dc.save_result(format = "NetCDF")
+plia_job = plia_res.create_job(title = "plia_greece_flood_2018_as_NetCDF_py")
+plia_job.start_job()
+plia_job.download_results()
+```
+
+```{python}
+plia_dc = xr.open_mfdataset("openEO_eodc/s1_parameters/PLIA-TAG/*.nc")
 plia_dc
 ```
