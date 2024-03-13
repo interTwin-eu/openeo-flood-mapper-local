@@ -62,5 +62,9 @@ notebooks/openEO_local
 /.quarto/
 /_site/
 notebooks/1_yeoda_dc_files
+notebooks/2_eodc_dc_files
 notebooks/*.html
 notebooks/dask-cluster.py
+
+# large files
+/**/**/*.nc

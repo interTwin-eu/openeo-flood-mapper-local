@@ -32,15 +32,6 @@ from openeo.local import LocalConnection
 from openeo.processes import ProcessBuilder, array_element, add, multiply, sin, cos, mask, exp, median
 ```
 
-```{python}
-#| echo: false
-from dask.distributed import Client
-try:
-    client = Client("localhost:9000")
-except:
-    pass
-```
-
 ## Data Sources
 
 The paths to the local data sources define the collections to be loaded in the next steps. In the case of a local openEO instance, we do this by just supplying the paths to the files required for the analysis. 
