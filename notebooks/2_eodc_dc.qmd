@@ -1,34 +1,15 @@
----
-title: "Flood mapping with openEO"
-subtitle: "interTwin"
-execute:
-  keep-ipynb: true
-author: 
-    - "Florian Roth"
-    - "Bernhard Raml"
-    - "Martin Schobben"
-    - "Matthias Schramm"
-bibliography: intertwin.bib
-format: html
----
-
-In this notebook we showcase openEO's standardization of remote sensing and Earth observation operations. We do this by translating the flood mapping algorithm as presented in @bauer-marschallinger_satellite-based_2022 to the openEO syntax of the Python Client. This algorithm employs Sentinel-1 backscattered microwaves, so-called "sigma nought" or $\sigma^0$, to detect flooding. In this exercise we will replicate the case study of the above mentioned paper, the February 2018 flooding of the Greek region of Thessaly.
+# openEO remote processing
 
 ## Setting-up a Python session
 
 We begin by loading openEO and some additional packages. In this exercise we make use of a local variant of openEO as the data is not yet available on an accessible data store.
 
 ```{python}
-# from datetime import datetime
-# from pathlib import Path
 import numpy as np
-
 import xarray as xr
-import rioxarray
-import matplotlib.pyplot as plt
-import cartopy.crs as ccrs
-import cartopy.io.img_tiles as cimgt
 from datetime import datetime
+
+from openeo_flood_mapper_local.view_flood_map import view_flood_map
 
 import openeo
 from openeo.processes import ProcessBuilder, array_element, add, multiply, sin, cos, mask, exp, median
@@ -56,6 +37,7 @@ sensing_date = ["2018-02-28T04:00:00Z", "2018-02-28T05:00:00Z"]
 ### Microwave Backscatter
 
 ```{python}
+#| code-fold: true
 connection.collection_metadata("SENTINEL1_SIG0_20M")
 ```
 
@@ -69,29 +51,10 @@ sig0_dc = connection.load_collection(
     mean_time()
 ```
 
-```{python}
-#| eval: false
-sig0_res = sig0_dc.save_result(format = "NetCDF")
-sig0_job = sig0_res.create_job(title = "sig0_greece_flood_2018_as_NetCDF_py")
-sig0_job.start_job()
-```
-
-```{python}
-#| eval: false
-sig0_job.download_results()
-```
-
-```{python}
-#| eval: false
-sig0_dc = xr.open_dataset("openEO_eodc/s1_parameters/SIG0/EU020M_E054N006T3_20180228T043908.nc")
-sig0_dc.where(sig0_dc != -9999). \
-    to_array(). \
-    plot(x="x", y="y", vmin=-25, vmax=0)
-```
-
 ### Harmonic parameters
 
 ```{python}
+#| code-fold: true
 connection.collection_metadata("SENTINEL1_HPAR")
 ```
 
@@ -104,27 +67,11 @@ hparam_dc = connection.load_collection(
     mean_time()
 ```
 
-```{python}
-#| eval: false
-hparam_res = hparam_dc.save_result(format = "NetCDF")
-hparam_job = hparam_res.create_job(title = "hparam_greece_flood_2018_as_NetCDF_py")
-hparam_job.start_job()
-```
-
-```{python}
-#| eval: false
-hparam_job.download_results()
-```
-
-```{python}
-#| eval: false
-hparam_dc = xr.open_dataset("openEO_eodc/tuw_s1_harpar/EU020M_E054N006T3_20200701T000000.nc")
-hparam_dc
-```
 
 ### Local Incidence Angle
 
 ```{python}
+#| code-fold: true
 connection.collection_metadata("SENTINEL1_MPLIA")
 ```
 
@@ -136,24 +83,6 @@ plia_dc = connection.load_collection(
     bands=["MPLIA"]
 ). \
     mean_time()
-```
-
-```{python}
-#| eval: false
-plia_res = plia_dc.save_result(format = "NetCDF")
-plia_job = plia_res.create_job(title = "plia_greece_flood_2018_as_NetCDF_py")
-plia_job.start_job()
-```
-
-```{python}
-#| eval: false
-plia_job.download_results()
-```
-
-```{python}
-#| eval: false
-plia_dc = xr.open_dataset("openEO_eodc/s1_parameters/PLIA-TAG/EU020M_E054N006T3_20200701T000000.nc")
-plia_dc
 ```
 
 ## openEO Analysis
@@ -187,14 +116,14 @@ water_bsc_job.start_job()
 
 ```{python}
 #| eval: false
-water_bsc_job.download_results()
+water_bsc_job.download_result("data/watter_backscatter/example.nc")
 ```
 
 We can then download the results from EODC.
 
 ```{python}
 #| eval: false
-water_bsc_dc = xr.open_dataset("openEO_eodc/water_backscatter/EU020M_E054N006T3_20200701T000000-new.nc")
+water_bsc_dc = xr.open_dataset("data/watter_backscatter/example.nc")
 water_bsc_dc
 ```
 
@@ -227,24 +156,6 @@ land_bsc_dc = harmonic_expected_backscatter(hparam_dc, '2018-02-01')
 ```
 
 So far we have covered a couple of the core features of the openEO Python Client syntax. However, in all these cases, the shape of the datacube was not altered. In the following section we cover what to do when want to change shape through accumulation or reduction of input values.
-
-```{python}
-#| eval: false
-land_bsc_res = land_bsc_dc.save_result(format = "NetCDF")
-land_bsc_job = land_bsc_res.create_job(title = "land_bsc_greece_flood_2018_as_NetCDF_py")
-land_bsc_job.start_job()
-```
-
-```{python}
-#| eval: false
-land_bsc_job.download_results()
-```
-
-```{python}
-#| eval: false
-land_bsc_dc = xr.open_dataset("openEO_eodc/land_backscatter/EU020M_E054N006T3_20200701T000000.nc")
-land_bsc_dc
-```
 
 ## Processes with Child “callbacks”
 
@@ -282,42 +193,6 @@ std_dc = hparam_dc.band('STD').add_dimension('bands', 'std', 'bands')
 sig0_dc = sig0_dc.reduce_bands('mean').add_dimension('bands', 'sig0', 'bands')
 ```
 
-```{python}
-#| eval: false
-std_res = std_dc.save_result(format = "NetCDF")
-std_job = std_res.create_job(title = "std_greece_flood_2018_as_NetCDF_py")
-std_job.start_job()
-```
-
-```{python}
-#| eval: false
-std_job.download_results()
-```
-
-```{python}
-#| eval: false
-std_dc = xr.open_dataset("openEO_eodc/tuw_s1_harpar/STD/EU020M_E054N006T3_20200701T000000.nc")
-std_dc
-```
-
-```{python}
-#| eval: false
-sig0_res = sig0_dc.save_result(format = "NetCDF")
-sig0_job = sig0_res.create_job(title = "sig0_greece_flood_2018_as_NetCDF_py")
-sig0_job.start_job()
-```
-
-```{python}
-#| eval: false
-sig0_job.download_results()
-```
-
-```{python}
-#| eval: false
-sig0_dc = xr.open_dataset("openEO_eodc/s1_parameters/SIG0/MEAN/EU020M_E054N006T3_20180228T043908.nc")
-sig0_dc
-```
-
 Now we can merge all these datacubes, like so:
 
 ```{python}
@@ -326,24 +201,6 @@ decision_in_dc = sig0_dc. \
     merge_cubes(water_bsc_dc). \
     merge_cubes(land_bsc_dc) . \
     merge_cubes(plia_dc)
-```
-
-```{python}
-#| eval: false
-decision_in_res = decision_in_dc.save_result(format = "NetCDF")
-decision_in_job = decision_in_res.create_job(title = "decision_greece_flood_2018_as_NetCDF_py")
-decision_in_job.start_job()
-```
-
-```{python}
-#| eval: false
-decision_in_job.download_results()
-```
-
-```{python}
-#| eval: false
-decision_in_dc = xr.open_dataset("openEO_eodc/flood_decision/in/EU020M_E054N006T3_NO_TIME.nc")
-decision_in_dc
 ```
 
 # Classification
@@ -365,7 +222,7 @@ flood_job.start_job()
 
 ```{python}
 #| eval: false
-flood_job.download("data/thessaly_floodmap_plia.nc")
+flood_job.download("data/thessaly_floodmap.nc")
 ```
 
 ## openEO Flood Mapping
@@ -373,40 +230,9 @@ flood_job.download("data/thessaly_floodmap_plia.nc")
 We can check the results of the openEO by executing the processing steps with `execute()` and by plotting the flood mapping classification.
 
 ```{python}
-#| echo: False
-def view_flood_map(df):
-    # selecting a subsection of the data and reprojecting
-    # flood_map = df[0, 13070:14000, 12900:14200]
-    flood_map = df.rio.reproject(f"EPSG:4326", nodata=np.nan)
-    # add open streetmap
-    # request = cimgt.OSM()
-    # initialize figure
-    fig = plt.figure(figsize=(13,9))
-    axis = plt.axes(projection=ccrs.PlateCarree(), frameon=True)
-    # axis.add_image(request, 15)
-    # add the data
-    flood_map = flood_map.plot(
-    ax=axis,
-    transform=ccrs.PlateCarree(),
-    levels=[0, 1, 2],
-    colors=["#00000000", "#ff0000"],
-    add_colorbar=False
-    )
-    # legend and title
-    cbar = fig.colorbar(flood_map, ax=axis, location="bottom", shrink=0.6)
-    cbar.ax.get_xaxis().set_ticks([])
-    for j, lab in enumerate(['non-flood','flood']):
-        cbar.ax.text((2 * j + 1) / 2.0, 0.5, lab, ha='center', va='center')
-    cbar.ax.get_xaxis().labelpad = 10
-    tk = fig.gca()
-    tk = tk.set_title("Flood map")
-```
-
-
-```{python}
 #| fig-cap: "openEO floodmap - no pre-processing"
 #| results: hide
-view_flood_map(xr.open_dataset("openEO_eodc/flood_decision/out/EU020M_E054N006T3_NO_TIME.nc").dec)
+view_flood_map(xr.open_dataset("data/thessaly_floodmap.nc").dec)
 ```
 
 By comparing this figure with the original study [@bauer-marschallinger_satellite-based_2022], we see that the openEO workflow can perform the same operations. There are, however, some differences with the original flood mapping study. These differences relate to the absence of the low sensitivity masking and post-processing steps of the flood probabilities in the openEO workflow. A priori low sensitivity masking removes observations in which situations arise that cause insensitivity to flood conditions for physical, geometric, or sensor-side reasons. Whereas, post-processing removes e.g. the small patches of supposed flooded pixels scattered throughout the image also known as "speckles". These speckles produce a more noisy picture in the openEO example.
@@ -426,6 +252,7 @@ flood_dc = flood_dc * mask_ia
 
 ```{python}
 #| eval: false
+#| echo: false
 flood_res = flood_dc.save_result(format = "NetCDF")
 flood_job = flood_res.create_job(title = "flood_greece_flood_2018_as_NetCDF_py")
 flood_job.start_job()
@@ -433,6 +260,7 @@ flood_job.start_job()
 
 ```{python}
 #| eval: false
+#| echo: false
 flood_job.download_result("data/thessaly_floodmap_plia.nc")
 ```
 
@@ -457,6 +285,7 @@ flood_dc = flood_dc * mask_conflict
 
 ```{python}
 #| eval: false
+#| echo: false 
 flood_res = flood_dc.save_result(format = "NetCDF")
 flood_job = flood_res.create_job(title = "flood_greece_flood_2018_as_NetCDF_py")
 flood_job.start_job()
@@ -464,6 +293,7 @@ flood_job.start_job()
 
 ```{python}
 #| eval: false
+#| echo: false 
 flood_job.download_result("data/thessaly_floodmap_plia_distr.nc")
 ```
 
@@ -492,6 +322,7 @@ flood_dc = flood_dc * (mask_land_outliers | mask_water_outliers)
 
 ```{python}
 #| eval: false
+#| echo: false 
 flood_res = flood_dc.save_result(format = "NetCDF")
 flood_job = flood_res.create_job(title = "flood_greece_flood_2018_as_NetCDF_py")
 flood_job.start_job()
@@ -499,6 +330,7 @@ flood_job.start_job()
 
 ```{python}
 #| eval: false
+#| echo: false 
 flood_job.download_result("data/thessaly_floodmap_plia_distr_out.nc")
 ```
 
@@ -523,6 +355,7 @@ flood_dc = flood_dc * mask_uncertainty
 
 ```{python}
 #| eval: false
+#| echo: false 
 flood_res = flood_dc.save_result(format = "NetCDF")
 flood_job = flood_res.create_job(title = "flood_greece_flood_2018_as_NetCDF_py")
 flood_job.start_job()
@@ -530,6 +363,7 @@ flood_job.start_job()
 
 ```{python}
 #| eval: false
+#| echo: false 
 flood_job.download_result("data/thessaly_floodmap_plia_distr_out_den.nc")
 ```
 
