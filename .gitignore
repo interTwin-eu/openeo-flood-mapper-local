@@ -59,8 +59,8 @@ notebooks/openeo-localprocessing-data
 notebooks/openEO_local
 
 # quarto
-.quarto/
-_book/
+/.quarto/
+/_book/
 notebooks/site_libs/
 notebooks/1_yeoda_dc_files
 notebooks/2_eodc_dc_files
@@ -68,3 +68,4 @@ notebooks/*.html
 
 # large files
 /**/**/*.nc
+
