@@ -1,0 +1,7 @@
+# Preface {.unnumbered}
+
+This is a thematic module example that supports the development of digital twins within the [interTwin](https://www.intertwin.eu) project. 
+
+On this page we showcase openEOs standardization of remote sensing and Earth observation operations. We do this by translating the flood mapping algorithm as presented in @bauer-marschallinger_satellite-based_2022, and part of the [GloFAS Global Flood Monitoring](https://www.globalfloods.eu/technical-information/glofas-gfm/) to the [openEO](https://openeo.org/) syntax of the Python Client. This algorithm employs Sentinel-1 backscattered microwaves, so-called "sigma nought" or $\sigma^0$, to detect flooding. In this exercise we will replicate the case study of the above mentioned paper, the February 2018 flooding of the Greek region of Thessaly.
+
+![[Source: Copernicus Emergency Management Service](https://emergency.copernicus.eu/mapping/ems/copernicus-emergency-management-service-monitors-impact-floods-greece)](notebooks/assets/images/EMSR271_AoIs.png)

@@ -59,14 +59,12 @@ notebooks/openeo-localprocessing-data
 notebooks/openEO_local
 
 # quarto
-notebooks/.quarto/
-notebooks/_book/
+.quarto/
+_book/
 notebooks/site_libs/
 notebooks/1_yeoda_dc_files
 notebooks/2_eodc_dc_files
 notebooks/*.html
-notebooks/dask-cluster.py
 
 # large files
 /**/**/*.nc
-
