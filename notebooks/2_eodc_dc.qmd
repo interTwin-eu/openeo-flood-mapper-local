@@ -201,7 +201,7 @@ And retrieve the data, like so:
 
 ```{python}
 #| eval: false
-flood_job.download("data/thessaly_floodmap.nc")
+flood_job.download_result("data/thessaly_floodmap.nc")
 ```
 
 Now let's have a look at the processing job performed at EODC.

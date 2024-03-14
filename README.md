@@ -1,4 +1,4 @@
-# openeo-flood-mapper (local)
+# openeo-flood-mapper
 
 ## Description
 This project represents a workflow retrieving flooded surfaces from intensity (backscatter) data of Sentinel-1. The
