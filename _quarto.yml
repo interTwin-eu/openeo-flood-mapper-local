@@ -21,7 +21,7 @@ css: "notebooks/assets/styles/scroll.css"
 
 execute:
   freeze: auto
-  keep-ipynb: true
+  # keep-ipynb: true
 
 format:
   html:
