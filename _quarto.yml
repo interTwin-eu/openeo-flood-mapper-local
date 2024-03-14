@@ -20,7 +20,8 @@ bibliography: notebooks/intertwin.bib
 css: "notebooks/assets/styles/scroll.css"
 
 execute:
-    keep-ipynb: true
+  freeze: auto
+  keep-ipynb: true
 
 format:
   html:
