@@ -51,21 +51,16 @@ MANIFEST
 .venv*/
 venv
 
-# make file markers
+# Make file markers
 .install*
 
-# data sources
-notebooks/openeo-localprocessing-data
-notebooks/openEO_local
-
-# quarto
+# Quarto
 /.quarto/
 /_book/
-notebooks/site_libs/
-notebooks/1_yeoda_dc_files
-notebooks/2_eodc_dc_files
-notebooks/*.html
+/_freeze/
+/notebooks/2_eodc_dc_files
+/notebooks/1_yeoda_dc_files
 
-# large files
+# Large files
 /**/**/*.nc
-
+/**/**/*.sh
