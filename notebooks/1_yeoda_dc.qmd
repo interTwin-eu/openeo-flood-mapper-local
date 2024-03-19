@@ -1,44 +1,24 @@
----
-title: "Flood Mapping with openEO"
-subtitle: "interTwin"
-execute:
-    keep-ipynb: true
-author: 
-- "Florian Roth"
-- "Bernhard Raml"
-- "Martin Schobben"
-- "Matthias Schramm"
-bibliography: intertwin.bib
-format: html
----
+# openEO local processing
 
-In this notebook we showcase openEOs standardization of remote sensing and Earth observation operations. We do this by translating the flood mapping algorithm as presented in @bauer-marschallinger_satellite-based_2022 to the openEO syntax of the Python Client. This algorithm employs Sentinel-1 backscattered microwaves, so-called "sigma nought" or $\sigma^0$, to detect flooding. In this exercise we will replicate the case study of the above mentioned paper, the February 2018 flooding of the Greek region of Thessaly.
+In this first flood mapping example we assume that the user has the relevant data on their own local device. The data required for TU Wien flood mapping algorithm consists of $\sigma^0$ backscatter data, the projected local incidence angle (PLIA) values of those measurements, and the harmonic parameters of a model fit on the pixel's backscatter time series.
+
+::: {.callout-note}
+The data can be formatted to the correct structure with the files found in the [GitHub repository](https://github.com/interTwin-eu/openeo-flood-mapper-local/tree/main/src/openeo_flood_mapper_local).
+:::
 
 ## Setting-up a Python Session
 
-We begin by loading openEO and some additional packages. In this exercise we use a local variant of openEO as the necessary data is not yet available on an accessible data store.
+We begin by loading openEO for local processing and some additional packages for transforming and viewing data. 
 
 ```{python}
 from datetime import datetime
 from pathlib import Path
 import numpy as np
 
-import rioxarray
-import matplotlib.pyplot as plt
-import cartopy.crs as ccrs
-import cartopy.io.img_tiles as cimgt
+from openeo_flood_mapper_local.view_flood_map import view_flood_map
 
 from openeo.local import LocalConnection
 from openeo.processes import ProcessBuilder, array_element, add, multiply, sin, cos, mask, exp, median
-```
-
-```{python}
-#| echo: false
-from dask.distributed import Client
-try:
-    client = Client("localhost:9000")
-except:
-    pass
 ```
 
 ## Data Sources
@@ -52,9 +32,9 @@ plia_id = Path(f"{ROOT_DATA}openEO_local/s1_parameters/S1_CSAR_IWGRDH/PLIA-TAG/V
 sig0_id = Path(f"{ROOT_DATA}openEO_local/s1_parameters/S1_CSAR_IWGRDH/SIG0/V1M1R1/EQUI7_EU020M/E054N006T3/SIG0_20180228T043908__VV_D080_E054N006T3_EU020M_V1M1R1_S1AIWGRDH_TUWIEN.nc")
 ```
 
-## Connect to an openEO Back-end
+## Connect to an openEO Backend
 
-Establish the local connection by supplying path(s) to root directories of the data source(s). This results in a connection object which is a critical aspect of collection discovery on the back-end by openEO, where in this instance the back-end is your own machine. 
+Establish the local connection by supplying path(s) to root directories of the data source(s). This results in a connection object which is a critical aspect of collection discovery on the backend by openEO, where in this instance the backend is your own machine. 
 
 ```{python}
 local_connection = LocalConnection([
@@ -93,7 +73,7 @@ water_bsc_dc = water_backscatter(plia_dc)
 water_bsc_dc
 ```
 
-Here we can see the basic premise of openEO. The previous call did not actually perform the data processing it only generates a JSON representation of the processing graph. Only by calling `execute()` on this object, we can actually perform the processing on the desired back-end, like so:
+Here we can see the basic premise of openEO. The previous call did not actually perform the data processing it only generates a JSON representation of the processing graph. Only by calling `execute()` on this object, we can actually perform the processing, like so:
 
 ```{python}
 water_bsc_dc.execute()
@@ -190,40 +170,10 @@ flood_dc = flood_dc.merge_cubes(decision_in)
 We can check the results of the openEO by executing the processing steps with `execute()` and by plotting the flood mapping classification.
 
 ```{python}
-#| echo: False
-def view_flood_map(df):
-    # selecting a subsection of the data and reprojecting
-    flood_map = df[0, 13070:14000, 12900:14200]
-    flood_map = flood_map.rio.reproject(f"EPSG:4326", nodata=np.nan)
-    # add open streetmap
-    request = cimgt.OSM()
-    # initialize figure
-    fig = plt.figure(figsize=(13,9))
-    axis = plt.axes(projection=ccrs.PlateCarree(), frameon=True)
-    axis.add_image(request, 15)
-    # add the data
-    flood_map = flood_map.plot(
-    ax=axis,
-    transform=ccrs.PlateCarree(),
-    levels=[0, 1, 2],
-    colors=["#00000000", "#ff0000"],
-    add_colorbar=False
-    )
-    # legend and title
-    cbar = fig.colorbar(flood_map, ax=axis, location="bottom", shrink=0.6)
-    cbar.ax.get_xaxis().set_ticks([])
-    for j, lab in enumerate(['non-flood','flood']):
-        cbar.ax.text((2 * j + 1) / 2.0, 0.5, lab, ha='center', va='center')
-    cbar.ax.get_xaxis().labelpad = 10
-    tk = fig.gca()
-    tk = tk.set_title("Flood map")
-```
-
-```{python}
 #| fig-cap: "openEO floodmap - no pre-processing"
 #| results: hide
 flood_decision = flood_dc.execute()
-view_flood_map(flood_decision)
+view_flood_map(flood_decision[0])
 ```
 
 By comparing this figure with the original study [@bauer-marschallinger_satellite-based_2022], we see that the openEO workflow can perform the same operations. There are, however, some differences with the original flood mapping study. These differences relate to the absence of the low sensitivity masking and post-processing steps of the flood probabilities in the openEO workflow. A priori low sensitivity masking removes observations in which situations arise that cause insensitivity to flood conditions for physical, geometric, or sensor-side reasons. Whereas, post-processing removes e.g. the small patches of supposed flooded pixels scattered throughout the image also known as "speckles". These speckles produce a more noisy picture in the openEO example.
@@ -248,7 +198,7 @@ This results in the following map:
 #| results: hide
 #| echo: False
 flood_decision = flood_dc.execute()
-view_flood_map(flood_decision)
+view_flood_map(flood_decision[0])
 ```
 
 ### Identification of Conflicting Distributions
@@ -268,7 +218,7 @@ Exclusion of these conflicting distributions look as follows:
 #| results: hide
 #| echo: False
 flood_decision = flood_dc.execute()
-view_flood_map(flood_decision)
+view_flood_map(flood_decision[0])
 ```
 
 ### Removal of Measurement Outliers
@@ -292,7 +242,7 @@ Adding this to the prvious masking results in the following map:
 #| results: hide
 #| echo: False
 flood_decision = flood_dc.execute()
-view_flood_map(flood_decision)
+view_flood_map(flood_decision[0])
 ```
 
 ### Denial of High Uncertainty on Decision
@@ -311,7 +261,7 @@ This results in the following floodmap.
 #| results: hide
 #| echo: False 
 flood_decision = flood_dc.execute()
-view_flood_map(flood_decision)
+view_flood_map(flood_decision[0])
 ```
 
 ## Postprocessing
@@ -322,7 +272,7 @@ The following steps are designed to further improve the clarity of the floodmaps
 
 One such filtering approach targets so-called speckles. These speckles are areas of one or a few pixels, and which are likely the result of the diversity of scattering surfaces at a sub-pixel level. In this approach it is argued that small, solitary flood surfaces are unlikely. Hence speckles are removed by applying a smoothing filter which consists of a rolling window median along the x and y-axis simultaneously. 
 
-This approach is realised in openEO with the parent function `apply_neighborhood()` with a window size of 3 by 3 pixels. The child process `median` is used to average the window's values.
+This approach is realized in openEO with the parent function `apply_neighborhood()` with a window size of 3 by 3 pixels. The child process `median` is used to average the window's values.
 
 ```{python}
 flood_decision = flood_dc. \
@@ -336,6 +286,6 @@ This results in a much clearer flood map, as shown below:
 #| fig-cap: "openEO floodmap - masking high uncertainty classifications + extreme outliers + conflicting distributions + exceeding incidence angles + majority filter"
 #| results: hide
 #| echo: False 
-view_flood_map(flood_decision)
+view_flood_map(flood_decision[0])
 ```
 

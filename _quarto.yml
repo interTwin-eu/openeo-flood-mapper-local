@@ -1,0 +1,28 @@
+project:
+  type: book
+
+book:
+  title: "Flood mapping with openEO"
+  subtitle: "interTwin"
+  author: 
+    - "Martin Schobben"
+    - "Florian Roth"
+    - "Bernhard Raml"
+    - "Matthias Schramm"
+  chapters:
+    - index.qmd
+    - notebooks/1_yeoda_dc.qmd
+    - notebooks/2_eodc_dc.qmd
+    - notebooks/references.qmd
+
+bibliography: notebooks/intertwin.bib
+
+css: "notebooks/assets/styles/scroll.css"
+
+execute:
+  freeze: auto
+  keep-ipynb: true
+
+format:
+  html:
+    theme: cosmo

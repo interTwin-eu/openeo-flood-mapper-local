@@ -46,21 +46,18 @@ docs/_rst/*
 docs/_build/*
 cover/*
 MANIFEST
+/**/**/*.sh
 
 # Per-project virtualenvs
 .venv*/
 venv
 
-# make file markers
+# Make file markers
 .install*
 
-# data sources
-notebooks/openeo-localprocessing-data
-notebooks/openEO_local
-
-# quarto
+# Quarto
 /.quarto/
-/_site/
-notebooks/1_yeoda_dc_files
-notebooks/*.html
-notebooks/dask-cluster.py
+/_book/
+/_freeze/
+/notebooks/2_eodc_dc_files
+/notebooks/1_yeoda_dc_files
