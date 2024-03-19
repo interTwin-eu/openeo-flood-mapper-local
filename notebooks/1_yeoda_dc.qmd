@@ -32,9 +32,9 @@ plia_id = Path(f"{ROOT_DATA}openEO_local/s1_parameters/S1_CSAR_IWGRDH/PLIA-TAG/V
 sig0_id = Path(f"{ROOT_DATA}openEO_local/s1_parameters/S1_CSAR_IWGRDH/SIG0/V1M1R1/EQUI7_EU020M/E054N006T3/SIG0_20180228T043908__VV_D080_E054N006T3_EU020M_V1M1R1_S1AIWGRDH_TUWIEN.nc")
 ```
 
-## Connect to an openEO Back-end
+## Connect to an openEO Backend
 
-Establish the local connection by supplying path(s) to root directories of the data source(s). This results in a connection object which is a critical aspect of collection discovery on the back-end by openEO, where in this instance the back-end is your own machine. 
+Establish the local connection by supplying path(s) to root directories of the data source(s). This results in a connection object which is a critical aspect of collection discovery on the backend by openEO, where in this instance the backend is your own machine. 
 
 ```{python}
 local_connection = LocalConnection([

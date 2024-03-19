@@ -10,6 +10,7 @@ We again begin by loading openEO and some additional packages.
 import numpy as np
 import xarray as xr
 from datetime import datetime
+import os
 
 from openeo_flood_mapper_local.view_flood_map import view_flood_map
 
@@ -17,9 +18,16 @@ import openeo
 from openeo.processes import ProcessBuilder, array_element, add, multiply, sin, cos, mask, exp, median
 ```
 
-## Connect to the EODC openEO Back-end
+```{python}
+#| echo: false
+# to save intermediate results
+if not os.path.exists("data"):
+    os.mkdir("data")
+```
 
-Establish a connection to the EODC back-end with `openeo.connect()`. This results in a connection object which is a critical aspect of collection discovery on the back-end by openEO. 
+## Connect to the EODC openEO Backend
+
+Establish a connection to the EODC backend with `openeo.connect()`. This results in a connection object which is a critical aspect of collection discovery on the backend by openEO. 
 
 ```{python}
 backend = "https://openeo.eodc.eu" 
@@ -37,11 +45,15 @@ connection.collection_metadata("SENTINEL1_SIG0_20M")
 ```
 
 
-We can then load the collections. This is done by using the method `load_collection()` and by using the collection ids as defined above. During collection loading we also do some initial filtering for convenience. We use the following criteria for filtering.
+We can then load the collections. This is done by using the method `load_collection()` and by using the collection ids as defined above. During collection loading we also do some initial filtering on the spatial and temporal extent. More importantly, we have to filter SENTINEL1_MPLIA and SENTINEL1_HPAR for the descending orbit "D080" to be able to calculate the correct reference backscatter signatures. So, we use the following criteria for filtering.
 
 ```{python}
-spatial_extent = {"west": 22, "south": 39.483774, "east": 22.225465, "north": 39.6}
+spatial_extent = {"west": 21.93, "south": 39.47, "east": 22.23, "north": 39.64}
 sensing_date = ["2018-02-28T04:00:00Z", "2018-02-28T05:00:00Z"]
+props = {
+   "sat:orbit_state": lambda x: openeo.processes.eq(x, "descending"),
+   "sat:relative_orbit": lambda x: openeo.processes.eq(x, 80)
+}
 ```
 
 ```{python}
@@ -63,7 +75,8 @@ connection.collection_metadata("SENTINEL1_HPAR")
 hparam_dc = connection.load_collection(
     "SENTINEL1_HPAR",
     spatial_extent = spatial_extent,
-    temporal_extent = "2019"
+    temporal_extent = "2019",
+    properties=props
 ). \
     mean_time()
 ```
@@ -78,7 +91,8 @@ plia_dc = connection.load_collection(
     "SENTINEL1_MPLIA",
     spatial_extent = spatial_extent,
     temporal_extent = ["2020-01-01", "2020-12-31"],
-    bands=["MPLIA"]
+    bands=["MPLIA"],
+    properties=props
 ). \
     mean_time()
 ```
@@ -110,11 +124,17 @@ water_bsc_job = water_bsc_res.create_job(title = "water_bsc_greece_flood_2018_as
 water_bsc_job.start_job()
 ```
 
-We can then download the results and view the retrieved data.
+We can then download the results.
 
 ```{python}
 #| eval: false
 water_bsc_job.download_result("data/watter_backscatter/example.nc")
+```
+
+And view the retrieved data.
+
+```{python}
+#| eval: false
 water_bsc_dc = xr.open_dataset("data/watter_backscatter/example.nc")
 water_bsc_dc
 ```
@@ -227,6 +247,11 @@ flood_dc = flood_dc * mask_ia
 flood_res = flood_dc.save_result(format = "NetCDF")
 flood_job = flood_res.create_job(title = "flood_greece_flood_2018_as_NetCDF_py")
 flood_job.start_job()
+```
+
+```{python}
+#| eval: false
+#| code-fold: true
 flood_job.download_result("data/thessaly_floodmap_plia.nc")
 ```
 
@@ -251,6 +276,11 @@ flood_dc = flood_dc * mask_conflict
 flood_res = flood_dc.save_result(format = "NetCDF")
 flood_job = flood_res.create_job(title = "flood_greece_flood_2018_as_NetCDF_py")
 flood_job.start_job()
+```
+
+```{python}
+#| eval: false
+#| code-fold: true
 flood_job.download_result("data/thessaly_floodmap_plia_distr.nc")
 ```
 
@@ -279,6 +309,11 @@ flood_dc = flood_dc * (mask_land_outliers | mask_water_outliers)
 flood_res = flood_dc.save_result(format = "NetCDF")
 flood_job = flood_res.create_job(title = "flood_greece_flood_2018_as_NetCDF_py")
 flood_job.start_job()
+```
+
+```{python}
+#| eval: false
+#| code-fold: true
 flood_job.download_result("data/thessaly_floodmap_plia_distr_out.nc")
 ```
 
@@ -302,6 +337,11 @@ flood_dc = flood_dc * mask_uncertainty
 flood_res = flood_dc.save_result(format = "NetCDF")
 flood_job = flood_res.create_job(title = "flood_greece_flood_2018_as_NetCDF_py")
 flood_job.start_job()
+```
+
+```{python}
+#| eval: false
+#| code-fold: true
 flood_job.download_result("data/thessaly_floodmap_plia_distr_out_den.nc")
 ```
 
@@ -309,5 +349,5 @@ flood_job.download_result("data/thessaly_floodmap_plia_distr_out_den.nc")
 #| fig-cap: "openEO floodmap - masking high uncertainty classifications + extreme outliers + conflicting distributions + exceeding incidence angles"
 #| results: hide
 #| echo: False 
-view_flood_map(xr.open_dataset("data/thessaly_floodmap_plia_distr_out_den.nc").dec)
+view_flood_map(xr.open_dataset("data/thessaly_floodmap_plia_distr_out_den-2.nc").dec)
 ```
