@@ -46,6 +46,7 @@ docs/_rst/*
 docs/_build/*
 cover/*
 MANIFEST
+/**/**/*.sh
 
 # Per-project virtualenvs
 .venv*/
@@ -60,7 +61,3 @@ venv
 /_freeze/
 /notebooks/2_eodc_dc_files
 /notebooks/1_yeoda_dc_files
-
-# Large files
-/**/**/*.nc
-/**/**/*.sh

@@ -173,7 +173,7 @@ We can check the results of the openEO by executing the processing steps with `e
 #| fig-cap: "openEO floodmap - no pre-processing"
 #| results: hide
 flood_decision = flood_dc.execute()
-view_flood_map(flood_decision[0, 13070:14000, 12900:14200])
+view_flood_map(flood_decision[0])
 ```
 
 By comparing this figure with the original study [@bauer-marschallinger_satellite-based_2022], we see that the openEO workflow can perform the same operations. There are, however, some differences with the original flood mapping study. These differences relate to the absence of the low sensitivity masking and post-processing steps of the flood probabilities in the openEO workflow. A priori low sensitivity masking removes observations in which situations arise that cause insensitivity to flood conditions for physical, geometric, or sensor-side reasons. Whereas, post-processing removes e.g. the small patches of supposed flooded pixels scattered throughout the image also known as "speckles". These speckles produce a more noisy picture in the openEO example.
@@ -198,7 +198,7 @@ This results in the following map:
 #| results: hide
 #| echo: False
 flood_decision = flood_dc.execute()
-view_flood_map(flood_decision[0, 13070:14000, 12900:14200])
+view_flood_map(flood_decision[0])
 ```
 
 ### Identification of Conflicting Distributions
@@ -218,7 +218,7 @@ Exclusion of these conflicting distributions look as follows:
 #| results: hide
 #| echo: False
 flood_decision = flood_dc.execute()
-view_flood_map(flood_decision[0, 13070:14000, 12900:14200])
+view_flood_map(flood_decision[0])
 ```
 
 ### Removal of Measurement Outliers
@@ -242,7 +242,7 @@ Adding this to the prvious masking results in the following map:
 #| results: hide
 #| echo: False
 flood_decision = flood_dc.execute()
-view_flood_map(flood_decision[0, 13070:14000, 12900:14200])
+view_flood_map(flood_decision[0])
 ```
 
 ### Denial of High Uncertainty on Decision
@@ -261,7 +261,7 @@ This results in the following floodmap.
 #| results: hide
 #| echo: False 
 flood_decision = flood_dc.execute()
-view_flood_map(flood_decision[0, 13070:14000, 12900:14200])
+view_flood_map(flood_decision[0])
 ```
 
 ## Postprocessing
@@ -286,6 +286,6 @@ This results in a much clearer flood map, as shown below:
 #| fig-cap: "openEO floodmap - masking high uncertainty classifications + extreme outliers + conflicting distributions + exceeding incidence angles + majority filter"
 #| results: hide
 #| echo: False 
-view_flood_map(flood_decision[0, 13070:14000, 12900:14200])
+view_flood_map(flood_decision[0])
 ```
 

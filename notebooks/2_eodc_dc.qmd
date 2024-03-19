@@ -349,5 +349,5 @@ flood_job.download_result("data/thessaly_floodmap_plia_distr_out_den.nc")
 #| fig-cap: "openEO floodmap - masking high uncertainty classifications + extreme outliers + conflicting distributions + exceeding incidence angles"
 #| results: hide
 #| echo: False 
-view_flood_map(xr.open_dataset("data/thessaly_floodmap_plia_distr_out_den-2.nc").dec)
+view_flood_map(xr.open_dataset("data/thessaly_floodmap_plia_distr_out_den.nc").dec)
 ```
